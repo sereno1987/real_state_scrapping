@@ -1,6 +1,7 @@
 #
 import requests
 from bs4 import BeautifulSoup
+import pandas
 
 # load a webpage
 r = requests.get ( "https://www.pythonhow.com/real-estate/rock-springs-wy/LCWYROCKSPRINGS/")
@@ -8,42 +9,48 @@ c = r.content
 soup=BeautifulSoup(c , "html.parser")
 # print(soup.prettify())
 
+# define list
+l=[]
 # for the first item in list use the find method or the [0] item
 all = soup.find_all("div",{"class":"propertyRow"})
 #print(all[0].find("h4",{"class":"propPrice"}).text.replace("\n","").replace(" ",""))
 for item in all:
+    d={}
+    d["Price"]=item.find("h4",{"class":"propPrice"}).text.replace("\n","").replace(" ","")
+    d["Address"]=item.find_all("span",{"class":"propAddressCollapse"})[0].text
+    d["Locality" ]=item.find_all("span",{"class":"propAddressCollapse"})[1].text
+
+# for infoBed if the answer is None so .text will lead to an error, so using try and except can help!
     try:
-        print(item.find("h4",{"class":"propPrice"}).text.replace("\n","").replace(" ",""))
-        print(item.find_all("span",{"class":"propAddressCollapse"})[0].text)
-        print(item.find_all("span",{"class":"propAddressCollapse"})[1].text)
+        d["Bed"] = item.find("span", {"class": "infoBed"}).find("b").text
     except:
-        pass
-        # for infoBed if the answer is None so .text will lead to an error, so using try and except can help!
+        d["Bed"] = None  # pass or print(None)
     try:
-        print(item.find("span", {"class": "infoBed"}).find("b").text)
+        d["Area"] = item.find("span", {"class": "infSqFt"}).find("b").text
     except:
-        print(None) # pass
+        d["Area"] = None
     try:
-        print(item.find("span", {"class": "infSqFt"}).find("b").text)
+        d["Full Bath"] = item.find("span", {"class": "infoValueFullBath"}).find("b").text
     except:
-        print ( None )
+        d["Full Bath"] = None
     try:
-        print(item.find("span", {"class": "infoValueFullBath"}).find("b").text)
+        d["Half Bed"] = item.find("span", {"class": "infoValueHalfBath"}).find("b").text
     except:
-        print(None)
-    try:
-        print(item.find("span", {"class": "infoValueHalfBath"}).find("b").text)
-    except:
-        print ( None )
+        d["Half Bed"] = None
     try:
         for columnGroup in item.find_all("div",{"class":"columnGroup"}):
             #print(columnGroup)
             for featureGroup, featureName in zip(columnGroup.find_all("span",{"class":"featureGroup"}),columnGroup.find_all("span",{"class":"featureName"})):
                 #if featureGroup.text == "Lot Size":
                     if "Lot Size" in featureGroup.text:
-                        print(featureName.text)
+                        d["Lot Size"] = featureName.text
 
     except:
-        print(None)
+        d["Lot Size"] = None
 
-    print(" ")
+    l.append(d)
+
+# define data frame
+df=pandas.DataFrame(l)
+df.to_csv("out.csv")
+
